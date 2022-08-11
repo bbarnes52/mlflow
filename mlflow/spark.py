@@ -342,10 +342,6 @@ class _HadoopFileSystem:
         return cls._jvm().org.apache.hadoop.fs.Path(path)
 
     @classmethod
-    def _stats(cls):
-        return cls._jvm().org.apache.hadoop.fs.FileSystem.getGlobalStorageStatistics()
-
-    @classmethod
     def copy_to_local_file(cls, src, dst, remove_src):
         cls._fs().copyToLocalFile(remove_src, cls._remote_path(src), cls._local_path(dst))
 
@@ -409,44 +405,25 @@ class _HadoopFileSystem:
         cls._fs().delete(cls._remote_path(path), True)
 
     @classmethod
-    def is_filesystem_available(cls, scheme):
-        return scheme in [stats.getScheme() for stats in cls._stats().iterator()]
+    def get_filesystem_class(cls, scheme):
+        cls._jvm().org.apache.hadoop.fs.FileSystem.getFileSystemClass(scheme, cls._conf())
 
 
 def _should_use_mlflowdbfs(root_uri):
-    # The `mlflowdbfs` scheme does not appear in the available schemes returned from
-    # the Hadoop FileSystem API until a read call has been issued.
-    from mlflow.utils._spark_utils import _get_active_spark_session
+    return (
+        is_valid_dbfs_uri(root_uri)
+        and is_databricks_acled_artifacts_uri(root_uri)
+        and databricks_utils.is_in_databricks_runtime()
+        and environment_variables._DISABLE_MLFLOWDBFS.get() in ["", "False", "false"]
+        and _is_filesystem_available(_MLFLOWDBFS_SCHEME)
+    )
 
-    try:
-        _get_active_spark_session().read.load("mlflowdbfs:///artifact?run_id=foo&path=/bar")
-    except Exception as e:
-        # The load invocation is expected to throw an exception.
-        if "MlflowdbfsClient" in str(e):
-            # The subsequent logic used to determine mlflowdbfs availability on Databricks
-            # clusters may not work on certain Databricks cluster types due to unavailability of
-            # the _HadoopFileSystem.is_filesystem_available() API. As a temporary workaround,
-            # we check the contents of the expected exception raised by a dummy mlflowdbfs
-            # read for evidence that mlflowdbfs is available. If "MlflowdbfsClient" is present
-            # in the exception contents, we can safely assume that mlflowdbfs is available because
-            # `MlflowdbfsClient` is exclusively used by mlflowdbfs for performing MLflow
-            # file storage operations
-            #
-            # TODO: Remove this logic once the _HadoopFileSystem.is_filesystem_available() check
-            # below is determined to work on all Databricks cluster types
-            return True
 
+def _is_filesystem_available(scheme):
     try:
-        return (
-            is_valid_dbfs_uri(root_uri)
-            and is_databricks_acled_artifacts_uri(root_uri)
-            and databricks_utils.is_in_databricks_runtime()
-            and environment_variables._DISABLE_MLFLOWDBFS.get() in ["", "False", "false"]
-            and _HadoopFileSystem.is_filesystem_available(_MLFLOWDBFS_SCHEME)
-        )
-    except Exception:
-        # TODO: Remove this logic once the _HadoopFileSystem.is_filesystem_available() check
-        # is determined to work on all Databricks cluster types
+        _HadoopFileSystem.get_filesystem_class(scheme)
+        return True
+    except:
         return False
 
 
