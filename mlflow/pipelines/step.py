@@ -254,6 +254,13 @@ class BaseStep(metaclass=abc.ABCMeta):
         """
         pass
 
+    def get_dag_info(self) -> Dict[Any]:
+        """
+        Returns a dictionary of named help strings associated with a step to be substituted into
+        the dag template.
+        """
+        return {}
+
     @experimental
     def get_execution_state(self, output_directory: str) -> StepExecutionState:
         """

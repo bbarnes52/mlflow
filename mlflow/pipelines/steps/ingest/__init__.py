@@ -4,6 +4,7 @@ import os
 
 from pathlib import Path
 from mlflow.exceptions import MlflowException
+from mlflow.pipelines import dag_help_strings
 from mlflow.pipelines.artifacts import DataframeArtifact
 from mlflow.pipelines.cards import BaseCard
 from mlflow.pipelines.step import BaseStep
@@ -204,6 +205,22 @@ class IngestStep(BaseIngestStep):
 
     def step_class(self):
         return StepClass.TRAINING
+
+    def get_dag_info(self):
+        return {
+            "ingest_step_help": {
+                "help_string": dag_help_strings.INGEST_STEP,
+                "help_string_type": "text",
+            },
+            "ingest_user_code_help": {
+                "help_string": dag_help_strings.INGEST_USER_CODE,
+                "help_string_type": "python",
+            },
+            "ingested_data_help": {
+                "help_string": dag_help_strings.INGESTED_DATA,
+                "help_string_type": "text",
+            },
+        }
 
 
 class IngestScoringStep(BaseIngestStep):

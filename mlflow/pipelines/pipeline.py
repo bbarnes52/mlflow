@@ -1,7 +1,9 @@
 import abc
 import logging
+import os
 
 from mlflow.exceptions import MlflowException
+from mlflow.pipelines import dag_help_strings
 from mlflow.pipelines.artifacts import Artifact
 from mlflow.pipelines.step import BaseStep, StepStatus, StepClass
 from mlflow.pipelines.utils import (
@@ -11,6 +13,7 @@ from mlflow.pipelines.utils import (
 )
 from mlflow.pipelines.utils.execution import (
     clean_execution_state,
+    get_or_create_base_execution_directory,
     run_pipeline_step,
     get_step_output_path,
 )
@@ -159,10 +162,15 @@ class _BasePipeline:
         The returned list should be a sublist of self._steps.
         """
         subgraph = []
+<<<<<<< HEAD
         if target_step.step_class == StepClass.UNKNOWN:
             return subgraph
         for step in self._steps:
             if target_step.step_class() == step.step_class():
+=======
+        for step in self._steps:
+            if target_step.is_predict_step() == step.is_predict_step():
+>>>>>>> 3961cbb9 (move subgraph logic into base pipeline)
                 subgraph.append(step)
         return subgraph
 
@@ -187,14 +195,32 @@ class _BasePipeline:
         pass
 
     @experimental
-    @abc.abstractmethod
     def _get_pipeline_dag_file(self) -> str:
         """
         Returns absolute path to the pipeline DAG representation HTML file.
-
-        Concrete pipeline class should implement this method.
         """
-        pass
+        import jinja2
+
+        j2_env = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
+        dag_substitutions = {
+            "pipeline_yaml_help": {
+                "help_string_type": "yaml",
+                "help_string": dag_help_strings.PIPELINE_YAML,
+            },
+        }
+        for step in self._steps:
+            dag_substitutions.update(step.get_dag_info())
+
+        pipeline_dag_template = j2_env.get_template("resources/pipeline_dag_template.html").render(
+            dag_substitutions
+        )
+        pipeline_dag_file = os.path.join(
+            get_or_create_base_execution_directory(self._pipeline_root_path), "pipeline_dag.html"
+        )
+        with open(pipeline_dag_file, "w") as f:
+            f.write(pipeline_dag_template)
+
+        return pipeline_dag_file
 
     def _resolve_pipeline_steps(self) -> List[BaseStep]:
         """

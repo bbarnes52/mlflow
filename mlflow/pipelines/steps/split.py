@@ -5,6 +5,7 @@ import importlib
 import sys
 
 from mlflow.pipelines.artifacts import DataframeArtifact
+from mlflow.pipelines import dag_help_strings
 from mlflow.pipelines.cards import BaseCard
 from mlflow.pipelines.step import BaseStep
 from mlflow.pipelines.step import StepClass
@@ -278,3 +279,27 @@ class SplitStep(BaseStep):
 
     def step_class(self):
         return StepClass.TRAINING
+
+    def get_dag_info(self):
+        return {
+            "split_step_help": {
+                "help_string": dag_help_strings.SPLIT_STEP,
+                "help_string_type": "text",
+            },
+            "split_user_code_help": {
+                "help_string": dag_help_strings.SPLIT_USER_CODE,
+                "help_string_type": "python",
+            },
+            "training_data_help": {
+                "help_string": dag_help_strings.TRAINING_DATA,
+                "help_string_type": "text",
+            },
+            "validation_data_help": {
+                "help_string": dag_help_strings.VALIDATION_DATA,
+                "help_string_type": "text",
+            },
+            "test_data_help": {
+                "help_string": dag_help_strings.TEST_DATA,
+                "help_string_type": "text",
+            },
+        }

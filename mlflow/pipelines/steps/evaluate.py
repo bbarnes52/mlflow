@@ -7,6 +7,7 @@ from collections import namedtuple
 
 import mlflow
 from mlflow.exceptions import MlflowException
+from mlflow.pipelines import dag_help_strings
 from mlflow.pipelines.cards import BaseCard
 from mlflow.pipelines.step import BaseStep
 from mlflow.pipelines.step import StepClass
@@ -371,3 +372,19 @@ class EvaluateStep(BaseStep):
 
     def step_class(self):
         return StepClass.TRAINING
+
+    def get_dag_info(self):
+        return {
+            "custom_metrics_user_code_help": {
+                "help_string": dag_help_strings.CUSTOM_METRICS_USER_CODE,
+                "help_string_type": "python",
+            },
+            "evaluate_step_help": {
+                "help_string": dag_help_strings.EVALUATE_STEP,
+                "help_string_type": "text",
+            },
+            "model_validation_status_help": {
+                "help_string": dag_help_strings.MODEL_VALIDATION_STATUS,
+                "help_string_type": "text",
+            },
+        }

@@ -5,6 +5,7 @@ from typing import Dict, Any
 
 import mlflow
 from mlflow.exceptions import MlflowException, BAD_REQUEST, INVALID_PARAMETER_VALUE
+from mlflow.pipelines import dag_help_strings
 from mlflow.pipelines.artifacts import DataframeArtifact
 from mlflow.pipelines.cards import BaseCard
 from mlflow.pipelines.step import BaseStep
@@ -237,3 +238,11 @@ class PredictStep(BaseStep):
 
     def step_class(self):
         return StepClass.PREDICTION
+
+    def get_dag_info(self):
+        return {
+            "predict_step_help": {
+                "help_string": dag_help_strings.PREDICT_STEP,
+                "help_string_type": "text",
+            },
+        }

@@ -5,6 +5,7 @@ from typing import Dict, Any
 import mlflow
 from mlflow.entities import SourceType
 from mlflow.exceptions import MlflowException, INVALID_PARAMETER_VALUE
+from mlflow.pipelines import dag_help_strings
 from mlflow.pipelines.artifacts import ModelVersionArtifact, RegisteredModelVersionInfo
 from mlflow.pipelines.cards import BaseCard
 from mlflow.pipelines.step import BaseStep
@@ -196,3 +197,15 @@ class RegisterStep(BaseStep):
 
     def step_class(self):
         return StepClass.TRAINING
+
+    def get_dag_info(self):
+        return {
+            "register_step_help": {
+                "help_string": dag_help_strings.REGISTER_STEP,
+                "help_string_type": "text",
+            },
+            "registered_model_version_help": {
+                "help_string": dag_help_strings.REGISTERED_MODEL_VERSION,
+                "help_string_type": "text",
+            },
+        }

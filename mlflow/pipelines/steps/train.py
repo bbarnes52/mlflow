@@ -11,6 +11,7 @@ import cloudpickle
 import mlflow
 from mlflow.entities import SourceType, ViewType
 from mlflow.exceptions import MlflowException, INVALID_PARAMETER_VALUE, BAD_REQUEST
+from mlflow.pipelines import dag_help_strings
 from mlflow.pipelines.artifacts import ModelArtifact, RunArtifact, HyperParametersArtifact
 from mlflow.pipelines.cards import BaseCard
 from mlflow.pipelines.step import BaseStep
@@ -790,6 +791,26 @@ class TrainStep(BaseStep):
 
     def step_class(self):
         return StepClass.TRAINING
+
+    def get_dag_info(self):
+        return {
+            "train_step_help": {
+                "help_string": dag_help_strings.TRAIN_STEP,
+                "help_string_type": "text",
+            },
+            "train_user_code_help": {
+                "help_string": dag_help_strings.TRAIN_USER_CODE,
+                "help_string_type": "python",
+            },
+            "fitted_model_help": {
+                "help_string": dag_help_strings.FITTED_MODEL,
+                "help_string_type": "text",
+            },
+            "mlflow_run_help": {
+                "help_string": dag_help_strings.MLFLOW_RUN,
+                "help_string_type": "text",
+            },
+        }
 
     def _tune_and_get_best_estimator_params(
         self,
