@@ -2,6 +2,7 @@
 Renders the statistics of logged data in a HTML format.
 """
 import base64
+import logging
 import numpy as np
 import pandas as pd
 import sys
@@ -14,6 +15,7 @@ from mlflow.exceptions import MlflowException
 # Number of categorical strings values to be rendered as part of the histogram
 HISTOGRAM_CATEGORICAL_LEVELS_COUNT = 100
 
+_logger = logging.getLogger(__name__)
 
 def get_facet_type_from_numpy_type(dtype):
     """Converts a Numpy dtype to the FeatureNameStatistics.Type proto enum."""
@@ -87,18 +89,26 @@ def convert_to_dataset_feature_statistics(
     :param df: The DataFrame for which feature statistics need to be computed.
     :return: A DatasetFeatureStatistics proto.
     """
+    _logger.info("61")
     fs_proto = facet_feature_statistics_pb2.FeatureNameStatistics
+    _logger.info("62")
     feature_stats = facet_feature_statistics_pb2.DatasetFeatureStatistics()
+    _logger.info("63")
     data_type_custom_stat = facet_feature_statistics_pb2.CustomStatistic()
+    _logger.info("64")
     pandas_describe = df.describe(datetime_is_numeric=True, include="all")
+    _logger.info("65")
     feature_stats.num_examples = len(df)
+    _logger.info("66")
     quantiles_to_get = [x * 10 / 100 for x in range(10 + 1)]
+    _logger.info("30")
     try:
         quantiles = df.select_dtypes(exclude=["bool"]).quantile(quantiles_to_get)
     except:
         raise MlflowException("Error in generating quantiles")
 
     for key in df:
+        _logger.info("31")
         pandas_describe_key = pandas_describe[key]
         current_column_value = df[key]
         data_type = current_column_value.dtype
@@ -109,41 +119,49 @@ def convert_to_dataset_feature_statistics(
             name=key.encode("utf-8"),
             custom_stats=[data_type_custom_stat],
         )
+        _logger.info("32")
         if feat.type in (fs_proto.INT, fs_proto.FLOAT):
             feat_stats = feat.num_stats
 
             converter = datetime_and_timedelta_converter(current_column_value.dtype)
             if converter:
+                _logger.info("33")
                 date_time_converted = converter(current_column_value)
                 current_column_value = pd.DataFrame(date_time_converted)[0]
                 pandas_describe_key = current_column_value.describe(
                     datetime_is_numeric=True, include="all"
                 )
                 quantiles[key] = current_column_value.quantile(quantiles_to_get)
+                _logger.info("34")
 
             default_value = 0
             feat_stats.std_dev = pandas_describe_key.get("std", default_value)
             feat_stats.mean = pandas_describe_key.get("mean", default_value)
             feat_stats.min = pandas_describe_key.get("min", default_value)
+            _logger.info("35")
             feat_stats.max = pandas_describe_key.get("max", default_value)
             feat_stats.median = current_column_value.median()
             feat_stats.num_zeros = (current_column_value == 0).sum()
             feat_stats.common_stats.CopyFrom(compute_common_stats(current_column_value))
 
+            _logger.info("36")
             if key in quantiles:
                 equal_width_hist = histogram_generator.generate_equal_width_histogram(
                     quantiles=quantiles[key].to_numpy(),
                     num_buckets=10,
                     total_freq=feat_stats.common_stats.num_non_missing,
                 )
+                _logger.info("37")
                 if equal_width_hist:
                     feat_stats.histograms.append(equal_width_hist)
                 equal_height_hist = histogram_generator.generate_equal_height_histogram(
                     quantiles=quantiles[key].to_numpy(), num_buckets=10
                 )
+                _logger.info("38")
                 if equal_height_hist:
                     feat_stats.histograms.append(equal_height_hist)
         elif feat.type == fs_proto.STRING:
+            _logger.info("39")
             isCurrentColumnBooleanType = False
             if current_column_value.dtype == bool:
                 current_column_value = current_column_value.replace({True: "True", False: "False"})
@@ -151,6 +169,7 @@ def convert_to_dataset_feature_statistics(
             feat_stats = feat.string_stats
             strs = current_column_value.dropna()
 
+            _logger.info("40")
             feat_stats.avg_length = (
                 np.mean(np.vectorize(len)(strs)) if not isCurrentColumnBooleanType else 0
             )
@@ -158,25 +177,36 @@ def convert_to_dataset_feature_statistics(
             feat_stats.unique = pandas_describe_key.get("unique", len(vals))
             sorted_vals = sorted(zip(counts, vals), reverse=True)
             sorted_vals = sorted_vals[:HISTOGRAM_CATEGORICAL_LEVELS_COUNT]
+            _logger.info("41")
             for val_index, val in enumerate(sorted_vals):
+                _logger.info("42")
                 try:
+                    _logger.info("43")
                     if sys.version_info.major < 3 or isinstance(val[1], (bytes, bytearray)):
+                        _logger.info("44")
                         printable_val = val[1].decode("UTF-8", "strict")
                     else:
+                        _logger.info("45")
                         printable_val = val[1]
                 except (UnicodeDecodeError, UnicodeEncodeError):
+                    _logger.info("46")
                     printable_val = "__BYTES_VALUE__"
+                _logger.info("47")
                 bucket = feat_stats.rank_histogram.buckets.add(
                     low_rank=val_index,
                     high_rank=val_index,
                     sample_count=val[0].item(),
                     label=printable_val,
                 )
+                _logger.info("48")
                 if val_index < 2:
+                    _logger.info("49")
                     feat_stats.top_values.add(value=bucket.label, frequency=bucket.sample_count)
 
+            _logger.info("49.5")
             feat_stats.common_stats.CopyFrom(compute_common_stats(current_column_value))
 
+    _logger.info("49.7")
     return feature_stats
 
 
@@ -187,9 +217,13 @@ def convert_to_proto(df: pd.DataFrame) -> facet_feature_statistics_pb2.DatasetFe
     :param df: The DataFrame for which feature statistics need to be computed.
     :return: A DatasetFeatureStatisticsList proto.
     """
+    _logger.info("10")
     feature_stats = convert_to_dataset_feature_statistics(df)
+    _logger.info("11")
     feature_stats_list = facet_feature_statistics_pb2.DatasetFeatureStatisticsList()
+    _logger.info("12")
     feature_stats_list.datasets.append(feature_stats)
+    _logger.info("13")
     return feature_stats_list
 
 
@@ -203,12 +237,20 @@ def convert_to_comparison_proto(
     :return: A DatasetFeatureStatisticsList proto which contains a translation
         of the glimpses with the given names.
     """
+    _logger.info("20")
     feature_stats_list = facet_feature_statistics_pb2.DatasetFeatureStatisticsList()
+    _logger.info("21")
     for (name, df) in dfs:
+        _logger.info("22")
         if not df.empty:
+            _logger.info("23")
             proto = convert_to_dataset_feature_statistics(df)
+            _logger.info("24")
             proto.name = name
+            _logger.info("25")
             feature_stats_list.datasets.append(proto)
+            _logger.info("26")
+    _logger.info("27")
     return feature_stats_list
 
 
@@ -268,13 +310,20 @@ def get_html(inputs: Union[pd.DataFrame, Iterable[Tuple[str, pd.DataFrame]]]) ->
         and they are all visualized in comparison mode.
     :return: None
     """
+    _logger.info("get_html called")
     if isinstance(inputs, pd.DataFrame):
+        _logger.info("1")
         if not inputs.empty:
+            _logger.info("2")
             proto = convert_to_proto(inputs)
+            _logger.info("3")
             compare = False
     else:
+        _logger.info("4")
         proto = convert_to_comparison_proto(inputs)
+        _logger.info("5")
         compare = True
 
     html = construct_facets_html(proto, compare=compare)
+    _logger.info("Constructed facets")
     return html

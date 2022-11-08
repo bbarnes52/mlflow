@@ -125,6 +125,7 @@ def get_pandas_data_profiles(inputs: Iterable[Tuple[str, pd.DataFrame]]) -> str:
     :return: a data profiling string such as Pandas profiling ProfileReport.
     """
     truncated_input = list(map(lambda input: truncate_pandas_data_profile(*input), inputs))
+    _logger.info("Truncated input worked.")
     return pandas_renderer.get_html(truncated_input)
 
 
